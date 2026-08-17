@@ -328,7 +328,16 @@
           0 4px 12px rgba(15, 23, 42, 0.15); /* Reduced outer shadow */
       }
 
-      .input-shell input,
+      /* 3-column equal grid for Expense Form */
+      .expense-form-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 equal-width columns */
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: flex-end;
+      }
+
+      /* .input-shell input,
       .input-shell select {
         border: none;
         background: transparent;
@@ -337,7 +346,20 @@
         font-size: 13px;
         flex: 1;
         color: var(--text);
-        min-width: 0;
+      } */
+
+      /* Ensure inputs and dropdowns can shrink below browser defaults */
+      .input-shell input,
+      .input-shell select {
+        border: none;
+        background: transparent;
+        outline: none;
+        padding: 7px 4px;
+        font-size: 13px;
+        flex: 1;
+        width: 100%;
+        min-width: 0; /* Crucial: stops grid items from forcing overflow */
+        color: var(--text);
       }
 
       .input-shell input::placeholder {
@@ -358,8 +380,6 @@
         margin-left: 4px;
         padding-left: 6px;
         border-left: 1px solid rgba(148, 163, 184, 0.35);
-        display: flex;       
-        align-items: center;
       }
 
       /* Buttons */
@@ -753,7 +773,7 @@
       }
 
       @media (max-width: 540px) {
-        .form-grid {
+        .form-grid,.expense-form-grid {
           grid-template-columns: 1fr;
         }
         .toolbar-row {
@@ -861,11 +881,11 @@
 
             <!-- Expense form -->
             <form id="expenseForm" autocomplete="off">
-              <div class="form-grid">
+              <div class="expense-form-grid">
+                <!-- Pill 1: Name -->
                 <div class="field-group">
                   <div class="field-label-row">
                     <div class="field-label">Expense name</div>
-                    <div class="field-helper">e.g. Dinner with friends</div>
                   </div>
                   <div class="input-shell" data-field-shell="name">
                     <input
@@ -876,11 +896,11 @@
                     />
                   </div>
                 </div>
-
+              
+                <!-- Pill 2: Amount -->
                 <div class="field-group">
                   <div class="field-label-row">
-                    <div class="field-label">Category & amount</div>
-                    <div class="field-helper">KRW only, no negatives</div>
+                    <div class="field-label">Amount</div>
                   </div>
                   <div class="input-shell" data-field-shell="amount">
                     <span class="input-prefix">₩</span>
@@ -890,16 +910,23 @@
                       inputmode="numeric"
                       placeholder="0"
                     />
-                    <span class="input-suffix">
-                      <select id="categorySelect">
-                        <option value="Food">Food</option>
-                        <option value="Transport">Transport</option>
-                        <option value="Shopping">Shopping</option>
-                        <option value="Bills">Bills</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </span>
+                  </div>
+                </div>
+              
+                <!-- Pill 3: Category -->
+                <div class="field-group">
+                  <div class="field-label-row">
+                    <div class="field-label">Category</div>
+                  </div>
+                  <div class="input-shell" data-field-shell="category">
+                    <select id="categorySelect">
+                      <option value="Food">Food</option>
+                      <option value="Transport">Transport</option>
+                      <option value="Shopping">Shopping</option>
+                      <option value="Bills">Bills</option>
+                      <option value="Entertainment">Entertainment</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                 </div>
               </div>
