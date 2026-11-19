@@ -309,49 +309,33 @@
       }
 
       .input-shell {
-        position: relative; /* Added */
+        position: relative;
         border-radius: var(--radius-pill);
         background: var(--input-bg);
         border: 1px solid rgba(148, 163, 184, 0.7);
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06); /* Reduced shadow */
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
         display: flex;
         align-items: center;
-        padding: 4px 10px; /* Slightly more vertical padding */
+        padding: 4px 10px;
         transition: all 0.18s ease;
-        overflow: visible; /* Added - crucial for dropdown */
+        overflow: visible;
       }
 
       .input-shell.focused {
         border-color: var(--accent);
         box-shadow:
           0 0 0 1px rgba(37, 99, 235, 0.35),
-          0 4px 12px rgba(15, 23, 42, 0.15); /* Reduced outer shadow */
+          0 4px 12px rgba(15, 23, 42, 0.15);
       }
 
-      /* 3-column equal grid for Expense Form */
       .expense-form-grid {
         display: grid;
-        grid-template-columns: repeat(
-          3,
-          minmax(0, 1fr)
-        ); /* 3 equal-width columns */
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 10px;
         margin-bottom: 10px;
         align-items: flex-end;
       }
 
-      /* .input-shell input,
-      .input-shell select {
-        border: none;
-        background: transparent;
-        outline: none;
-        padding: 7px 4px;
-        font-size: 13px;
-        flex: 1;
-        color: var(--text);
-      } */
-
-      /* Ensure inputs and dropdowns can shrink below browser defaults */
       .input-shell input,
       .input-shell select {
         border: none;
@@ -361,8 +345,15 @@
         font-size: 13px;
         flex: 1;
         width: 100%;
-        min-width: 0; /* Crucial: stops grid items from forcing overflow */
+        min-width: 0;
         color: var(--text);
+      }
+
+      /* Fix 3: Keep full placeholder visible without right-edge clipping */
+      #nameInput::placeholder {
+        font-size: 11px;
+        letter-spacing: -0.01em;
+        color: rgba(148, 163, 184, 0.9);
       }
 
       .input-shell input::placeholder {
@@ -639,7 +630,6 @@
         transition: all 0.12s ease;
       }
 
-      /* Dark mode dropdown styling */
       [data-theme="dark"] select {
         background: transparent;
         color: #e5e7eb;
@@ -725,17 +715,6 @@
       }
 
       .inline-category-select {
-        border: none;
-        background: transparent;
-        outline: none;
-        padding: 4px 6px;
-        font-size: 11px;
-        color: var(--text);
-        border-radius: var(--radius-md);
-        transition: all 0.12s ease;
-      }
-
-      .inline-category-select {
         background: var(--bg-elevated-soft);
       }
 
@@ -785,6 +764,9 @@
         }
         .stats-strip {
           grid-template-columns: 1fr;
+        }
+        #nameInput::placeholder {
+          font-size: 13px;
         }
       }
     </style>
@@ -1016,6 +998,7 @@
 
     <script>
       const STORAGE_KEY = "krw_expenses_v1";
+      const INCOME_KEY = "krw_expenses_income_v1";
       const THEME_KEY = "krw_expenses_theme";
 
       // Elements
@@ -1074,6 +1057,43 @@
         return Math.round((part / total) * 100);
       }
 
+      // Fix 1: Balanced rounded percentages so category shares sum cleanly to 100%
+      function getBalancedCategoryPercents(byCategory, total) {
+        const entries = Object.entries(byCategory);
+        const result = {};
+        if (!total || total <= 0 || !entries.length) {
+          entries.forEach(([cat]) => {
+            result[cat] = 0;
+          });
+          return result;
+        }
+
+        const rawItems = entries.map(([cat, amt]) => {
+          const exact = (amt / total) * 100;
+          const floored = Math.floor(exact);
+          return {
+            cat,
+            floored,
+            remainder: exact - floored,
+          };
+        });
+
+        let remaining = 100 - rawItems.reduce((acc, item) => acc + item.floored, 0);
+        const byRemainder = rawItems
+          .slice()
+          .sort((a, b) => b.remainder - a.remainder);
+
+        for (let i = 0; i < remaining; i++) {
+          byRemainder[i % byRemainder.length].floored += 1;
+        }
+
+        rawItems.forEach((item) => {
+          result[item.cat] = item.floored;
+        });
+
+        return result;
+      }
+
       function getNowIso() {
         return new Date().toISOString();
       }
@@ -1120,6 +1140,28 @@
 
       function saveExpenses() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+      }
+
+      // Fix 2: Persist income across refreshes
+      function loadIncome() {
+        try {
+          const raw = localStorage.getItem(INCOME_KEY);
+          if (!raw) return 0;
+          const num = Number(raw);
+          return Number.isFinite(num) && num > 0 ? num : 0;
+        } catch {
+          return 0;
+        }
+      }
+
+      function saveIncome(val) {
+        try {
+          if (val && val > 0) {
+            localStorage.setItem(INCOME_KEY, String(val));
+          } else {
+            localStorage.removeItem(INCOME_KEY);
+          }
+        } catch {}
       }
 
       function loadTheme() {
@@ -1238,6 +1280,8 @@
       // Stats
       function renderStats() {
         const { sum, count, byCategory } = getTotals();
+        const balancedPcts = getBalancedCategoryPercents(byCategory, sum);
+
         totalSpendEl.textContent = formatKRW(sum);
         totalCountEl.textContent = `${count} item${count === 1 ? "" : "s"} this period`;
 
@@ -1250,7 +1294,7 @@
           if (amt > topAmount) {
             topAmount = amt;
             topCat = cat;
-            topCatPct = percent(amt, sum);
+            topCatPct = balancedPcts[cat] ?? percent(amt, sum);
           }
         });
 
@@ -1302,12 +1346,12 @@
 
       function updateCharts() {
         const { sum, byCategory } = getTotals();
+        const balancedPcts = getBalancedCategoryPercents(byCategory, sum);
 
         const catLabels = Object.keys(byCategory);
         const catValues = Object.values(byCategory);
         const donutColors = catLabels.map(
-          (cat, idx) =>
-            categoryColors[cat] || getCategoryPalette(catLabels)[idx],
+          (cat, idx) => categoryColors[cat] || getCategoryPalette(catLabels)[idx],
         );
 
         if (donutChart) donutChart.destroy();
@@ -1333,7 +1377,7 @@
                 callbacks: {
                   label(context) {
                     const value = context.parsed;
-                    const p = percent(value, sum);
+                    const p = balancedPcts[context.label] ?? percent(value, sum);
                     return `${context.label}: ${formatKRW(value)} (${p}%)`;
                   },
                 },
@@ -1345,7 +1389,7 @@
         categoryLegend.innerHTML = catLabels
           .map((label, idx) => {
             const val = catValues[idx];
-            const p = percent(val, sum);
+            const p = balancedPcts[label] ?? percent(val, sum);
             const color = donutColors[idx];
             return `
           <span class="chart-legend-item">
@@ -1419,6 +1463,7 @@
           },
         });
       }
+
       // Events
       amountInput.addEventListener("input", () => {
         const raw = amountInput.value;
@@ -1488,6 +1533,7 @@
 
         if (!rawIncome) {
           income = 0;
+          saveIncome(0);
           updateIncomeSummary();
           return;
         }
@@ -1498,6 +1544,7 @@
         }
 
         income = parsed;
+        saveIncome(income);
         updateIncomeSummary();
       });
 
@@ -1557,6 +1604,10 @@
         setInputFocusStyles();
         initTheme();
         expenses = loadExpenses();
+        income = loadIncome();
+        if (income > 0) {
+          incomeInput.value = income.toLocaleString("ko-KR");
+        }
         renderList();
         renderStats();
         updateCharts();
