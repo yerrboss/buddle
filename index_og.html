@@ -331,7 +331,10 @@
       /* 3-column equal grid for Expense Form */
       .expense-form-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr)); /* 3 equal-width columns */
+        grid-template-columns: repeat(
+          3,
+          minmax(0, 1fr)
+        ); /* 3 equal-width columns */
         gap: 10px;
         margin-bottom: 10px;
         align-items: flex-end;
@@ -576,7 +579,7 @@
 
       .expense-row {
         display: grid;
-          grid-template-columns: minmax(0, 1.2fr) auto auto 40px;
+        grid-template-columns: minmax(0, 1.2fr) auto auto 40px;
         align-items: center;
         gap: 8px;
         padding: 10px 10px;
@@ -625,27 +628,27 @@
         background: var(--bg-elevated-soft);
       }
 
-      .inline-category-select{
-      border: none;
-      background: transparent;
-      outline: none;
-      padding: 4px 6px;
-      font-size: 11px;
-      color: var(--text);
-      border-radius: var(--radius-md);
-      transition: all 0.12s ease;
-    }
+      .inline-category-select {
+        border: none;
+        background: transparent;
+        outline: none;
+        padding: 4px 6px;
+        font-size: 11px;
+        color: var(--text);
+        border-radius: var(--radius-md);
+        transition: all 0.12s ease;
+      }
 
-    /* Dark mode dropdown styling */
-    [data-theme="dark"] select {
-      background: transparent;
-      color: #e5e7eb;
-    }
-    
-    [data-theme="dark"] select option {
-      background: #020617;
-      color: #e5e7eb;
-    }
+      /* Dark mode dropdown styling */
+      [data-theme="dark"] select {
+        background: transparent;
+        color: #e5e7eb;
+      }
+
+      [data-theme="dark"] select option {
+        background: #020617;
+        color: #e5e7eb;
+      }
 
       /* Charts */
 
@@ -773,7 +776,8 @@
       }
 
       @media (max-width: 540px) {
-        .form-grid,.expense-form-grid {
+        .form-grid,
+        .expense-form-grid {
           grid-template-columns: 1fr;
         }
         .toolbar-row {
@@ -896,7 +900,7 @@
                     />
                   </div>
                 </div>
-              
+
                 <!-- Pill 2: Amount -->
                 <div class="field-group">
                   <div class="field-label-row">
@@ -912,7 +916,7 @@
                     />
                   </div>
                 </div>
-              
+
                 <!-- Pill 3: Category -->
                 <div class="field-group">
                   <div class="field-label-row">
@@ -1301,6 +1305,10 @@
 
         const catLabels = Object.keys(byCategory);
         const catValues = Object.values(byCategory);
+        const donutColors = catLabels.map(
+          (cat, idx) =>
+            categoryColors[cat] || getCategoryPalette(catLabels)[idx],
+        );
 
         if (donutChart) donutChart.destroy();
         donutChart = new Chart(donutCtx, {
@@ -1310,7 +1318,7 @@
             datasets: [
               {
                 data: catValues,
-                backgroundColor: getCategoryPalette(catLabels),
+                backgroundColor: donutColors,
                 borderWidth: 0,
               },
             ],
@@ -1338,8 +1346,7 @@
           .map((label, idx) => {
             const val = catValues[idx];
             const p = percent(val, sum);
-            const color =
-              categoryColors[label] || getCategoryPalette(catLabels)[idx];
+            const color = donutColors[idx];
             return `
           <span class="chart-legend-item">
             <span class="chart-dot" style="background:${color};"></span>
@@ -1356,6 +1363,9 @@
 
         const barLabels = expenses.map((e) => e.name);
         const barValues = expenses.map((e) => e.amount);
+        const barColors = expenses.map(
+          (e) => categoryColors[e.category] || "#2563eb",
+        );
 
         if (barChart) barChart.destroy();
         barChart = new Chart(barCtx, {
@@ -1365,7 +1375,7 @@
             datasets: [
               {
                 data: barValues,
-                backgroundColor: "rgba(56, 189, 248, 0.8)",
+                backgroundColor: barColors,
                 borderRadius: 0,
                 borderSkipped: undefined,
               },
@@ -1409,7 +1419,6 @@
           },
         });
       }
-
       // Events
       amountInput.addEventListener("input", () => {
         const raw = amountInput.value;
